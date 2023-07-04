@@ -2,6 +2,7 @@
 #include "interfaces.hpp"
 #include "branch_predictor.hpp"
 #include "bpb.hpp"
+#include "correlation_predictor.hpp"
 #include <nana/gui/widgets/listbox.hpp>
 #include<vector>
 #include<deque>
@@ -41,6 +42,7 @@ public:
     branch_predictor get_preditor();
     bpb get_bpb();
     int get_mem_count();
+    correlation_predictor get_correlation();
 
 private:
     struct rob_slot{
@@ -80,6 +82,7 @@ private:
     int flag_mode;
     branch_predictor preditor;
     bpb branch_prediction_buffer;
+    correlation_predictor predictor;
     map<string,unsigned int> branch_instr;
     nana::listbox &gui_table;
     nana::listbox::cat_proxy instr_queue_gui;

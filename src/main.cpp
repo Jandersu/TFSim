@@ -23,11 +23,14 @@ int sc_main(int argc, char *argv[])
     using namespace nana;
     vector<string> instruction_queue;
     string bench_name = "";
-    int nadd,nmul,nls, n_bits, bpb_size, cpu_freq;
+    int nadd,nmul,nls, n_bits, bpb_size, cpu_freq, m, n, correlation_size;
     nadd = 3;
     nmul = nls = 2;
     n_bits = 2;
     bpb_size = 4;
+    m = 0;
+    n = 0;
+    correlation_size = 0;
     cpu_freq = 500; // definido em Mhz - 500Mhz default
     std::vector<int> sizes;
     bool spec = false;
@@ -114,11 +117,39 @@ int sc_main(int argc, char *argv[])
 
         set_spec(plc, spec);
     });
+    // Modo correlação
+    spec_sub->append("Correlation Predict", [&](menu::item_proxy &ip)
+    {
+        if (ip.checked())
+        {
+            spec = true;
+            mode = 3;
+            spec_sub->checked(0, false);
+            spec_sub->checked(1, false);
+        }
+        else
+        {
+            spec = false;
+            mode = 0;
+        }
+
+        inputbox ibox(fm, "", "(m,n)");
+        inputbox::integer size("M", m, 1, 4096, 1);
+        inputbox::integer bits("N", n, 1, 4, 1);
+        if(ibox.show_modal(size, bits)){
+            bpb_size = size.value();
+            n_bits = bits.value();
+        }
+        correlation_size = m * n;
+        set_spec(plc, spec);
+    });
+    
+    spec_sub->check_style(2, menu::checks::highlight);
     spec_sub->check_style(0,menu::checks::highlight);
     spec_sub->check_style(1,menu::checks::highlight);
 
     op.append("Modificar valores...");
-    // novo submenu para escolha do tamanho do bpb e do preditor
+    // novo submenu para escolha do tamanho do bpb e do 
     auto sub = op.create_sub_menu(1);
     sub->append("Tamanho do BPB e Preditor", [&](menu::item_proxy &ip)
     {
@@ -419,6 +450,30 @@ int sc_main(int argc, char *argv[])
         else
             fila = true;
     }); 
+    bench_sub->append("Desvio 1",[&](menu::item_proxy &ip){
+        string path = "in/benchmarks/Desvio_1/Desvio1.txt";       
+        inFile.open(path);
+        if(!add_instructions(inFile,instruction_queue,instruct))
+            show_message("Arquivo inválido","Não foi possível abrir o arquivo!");
+        else
+            fila = true;
+    });
+    bench_sub->append("Desvio 2",[&](menu::item_proxy &ip){
+        string path = "in/benchmarks/Desvio_2/Desvio2.txt";       
+        inFile.open(path);
+        if(!add_instructions(inFile,instruction_queue,instruct))
+            show_message("Arquivo inválido","Não foi possível abrir o arquivo!");
+        else
+            fila = true;
+    });
+    bench_sub->append("Desvio 3",[&](menu::item_proxy &ip){
+        string path = "in/benchmarks/Desvio_3/Desvio3.txt";       
+        inFile.open(path);
+        if(!add_instructions(inFile,instruction_queue,instruct))
+            show_message("Arquivo inválido","Não foi possível abrir o arquivo!");
+        else
+            fila = true;
+    });
     bench_sub->append("Busca Linear",[&](menu::item_proxy &ip){
         string path = "in/benchmarks/linear_search/linear_search.txt";
         bench_name = "linear_search";
@@ -887,6 +942,8 @@ int sc_main(int argc, char *argv[])
                     top1.rob_mode(n_bits,nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
                 else if(mode == 2)
                     top1.rob_mode_bpb(n_bits, bpb_size, nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
+                else if(mode == 3)
+                    top1.rob_mode_bpb(n_bits, correlation_size, nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count,rob);
             }
             else
                 top1.simple_mode(nadd,nmul,nls,instruct_time,instruction_queue,table,memory,reg,instruct,clock_count);
